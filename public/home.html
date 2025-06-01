@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MindfulSpace - Home</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body class="main-body">
+  <div class="floating-leaves">
+    <div class="leaf leaf-1">🍃</div>
+    <div class="leaf leaf-2">🌿</div>
+    <div class="leaf leaf-3">🍃</div>
+    <div class="leaf leaf-4">🌿</div>
+    <div class="leaf leaf-5">🍃</div>
+    <div class="leaf leaf-6">🌱</div>
+  </div>
+
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <i class="fas fa-leaf"></i>
+        <h2>MindfulSpace</h2>
+      </div>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="home.html" class="menu-item active"><i class="fas fa-home"></i> Home</a></li>
+      <li><a href="journal.html" class="menu-item"><i class="fas fa-book"></i> Journal</a></li>
+      <li><a href="support.html" class="menu-item"><i class="fas fa-users"></i> Support Group</a></li>
+      <li><a href="connect.html" class="menu-item"><i class="fas fa-user-friends"></i> Connect</a></li>
+      <li><a href="profile.html" class="menu-item"><i class="fas fa-user"></i> Profile</a></li>
+      <li><a href="#" onclick="logout()" class="menu-item logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+    </ul>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>Welcome back, <span id="user-name-display"></span>! 🌸</h1>
+      <p>How are you feeling in this beautiful moment?</p>
+    </div>
+
+    <div class="home-grid">
+      <!-- Mood Tracker -->
+      <div class="card mood-tracker">
+        <h3><i class="fas fa-heart"></i> Today's Mood</h3>
+        <div class="mood-options">
+          <button class="mood-btn" onclick="setMood('😊', 'happy')" data-mood="happy">😊 Happy</button>
+          <button class="mood-btn" onclick="setMood('😢', 'sad')" data-mood="sad">😢 Sad</button>
+          <button class="mood-btn" onclick="setMood('😰', 'anxious')" data-mood="anxious">😰 Anxious</button>
+          <button class="mood-btn" onclick="setMood('😴', 'tired')" data-mood="tired">😴 Tired</button>
+          <button class="mood-btn" onclick="setMood('😌', 'calm')" data-mood="calm">😌 Calm</button>
+          <button class="mood-btn" onclick="setMood('😤', 'angry')" data-mood="angry">😤 Angry</button>
+        </div>
+        <div id="mood-feedback" class="mood-feedback"></div>
+      </div>
+
+      <!-- Gratitude -->
+      <div class="card gratitude">
+        <h3><i class="fas fa-heart"></i> Gratitude Garden</h3>
+        <p class="gratitude-subtitle">What are you grateful for today?</p>
+        <textarea id="gratitude-input" placeholder="I'm grateful for..."></textarea>
+        <button onclick="saveGratitude()" class="btn-primary"><i class="fas fa-seedling"></i> Plant Gratitude</button>
+        <div id="gratitude-list" class="gratitude-list"></div>
+      </div>
+
+      <!-- Mood Calendar -->
+      <div class="card mood-calendar">
+        <h3><i class="fas fa-calendar-alt"></i> Mood Calendar</h3>
+        <div id="calendar" class="calendar"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function getCurrentUser() {
+      return JSON.parse(localStorage.getItem('mindful_current_user'));
+    }
+
+    function checkAuth() {
+      if (!getCurrentUser()) {
+        window.location.href = 'login.html';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('mindful_current_user');
+      window.location.href = 'login.html';
+    }
+
+    function setMood(emoji, mood) {
+      const today = new Date().toDateString();
+      const currentUser = getCurrentUser();
+      let moods = JSON.parse(localStorage.getItem('mindful_moods')) || {};
+
+      if (!moods[currentUser.id]) moods[currentUser.id] = {};
+      moods[currentUser.id][today] = { emoji, mood, timestamp: new Date().toISOString() };
+      localStorage.setItem('mindful_moods', JSON.stringify(moods));
+
+      document.getElementById('mood-feedback').innerHTML = `
+        <div class="mood-response">
+          <p>You're feeling ${mood} today ${emoji}</p>
+          <p class="mood-tip">${getMoodTip(mood)}</p>
+        </div>
+      `;
+
+      document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('selected'));
+      document.querySelector(`[data-mood="${mood}"]`)?.classList.add('selected');
+
+      generateCalendar();
+    }
+
+    function getMoodTip(mood) {
+      const tips = {
+        happy: "That's wonderful! 🌟 Share your joy or reflect on it.",
+        sad: "It's okay to feel sad. 🤗 Talk to someone or rest.",
+        anxious: "Take deep breaths. 🌬️ Try grounding exercises.",
+        tired: "Rest is important. 😴 Give yourself a break.",
+        calm: "Beautiful! 🧘‍♀️ Enjoy your peace and plan ahead.",
+        angry: "It’s normal to feel angry. 🔥 Try journaling or movement."
+      };
+      return tips[mood] || "Take care of yourself. 💚";
+    }
+
+    function saveGratitude() {
+      const text = document.getElementById('gratitude-input').value.trim();
+      if (!text) return;
+
+      const today = new Date().toDateString();
+      const currentUser = getCurrentUser();
+      let gratitudes = JSON.parse(localStorage.getItem('mindful_gratitudes')) || {};
+
+      if (!gratitudes[currentUser.id]) gratitudes[currentUser.id] = {};
+      if (!gratitudes[currentUser.id][today]) gratitudes[currentUser.id][today] = [];
+
+      gratitudes[currentUser.id][today].push({
+        text: text,
+        timestamp: new Date().toISOString()
+      });
+
+      localStorage.setItem('mindful_gratitudes', JSON.stringify(gratitudes));
+      document.getElementById('gratitude-input').value = '';
+      loadGratitudes();
+    }
+
+    function loadGratitudes() {
+      const today = new Date().toDateString();
+      const currentUser = getCurrentUser();
+      const gratitudes = JSON.parse(localStorage.getItem('mindful_gratitudes')) || {};
+      const todayGratitudes = gratitudes[currentUser.id]?.[today] || [];
+
+      const container = document.getElementById('gratitude-list');
+      container.innerHTML = todayGratitudes.map(g => `
+        <div class="gratitude-item">
+          <div class="gratitude-icon">🌸</div>
+          <div class="gratitude-content">
+            <p>${g.text}</p>
+            <small>${new Date(g.timestamp).toLocaleTimeString()}</small>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function generateCalendar() {
+      const calendar = document.getElementById('calendar');
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      const firstDay = new Date(currentYear, currentMonth, 1);
+      const lastDay = new Date(currentYear, currentMonth + 1, 0);
+      const daysInMonth = lastDay.getDate();
+      const startingDay = firstDay.getDay();
+      const endingDay = lastDay.getDay();
+
+      const currentUser = getCurrentUser();
+      const moods = JSON.parse(localStorage.getItem('mindful_moods')) || {};
+      const userMoods = moods[currentUser.id] || {};
+
+      let html = `
+        <div class="calendar-header">
+          <h4>${today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4>
+        </div>
+        <div class="calendar-grid">
+          <div class="day-header">Sun</div>
+          <div class="day-header">Mon</div>
+          <div class="day-header">Tue</div>
+          <div class="day-header">Wed</div>
+          <div class="day-header">Thu</div>
+          <div class="day-header">Fri</div>
+          <div class="day-header">Sat</div>
+      `;
+
+      for (let i = 0; i < startingDay; i++) {
+        html += '<div class="calendar-day empty"></div>';
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(currentYear, currentMonth, day);
+        const dateString = date.toDateString();
+        const mood = userMoods[dateString];
+        const isToday = dateString === today.toDateString();
+
+        html += `
+          <div class="calendar-day ${isToday ? 'today' : ''}" title="${mood ? `Feeling ${mood.mood}` : 'No mood recorded'}">
+            <span class="day-number">${day}</span>
+            ${mood ? `<span class="day-mood">${mood.emoji}</span>` : ''}
+          </div>
+        `;
+      }
+
+      for (let i = endingDay + 1; i < 7; i++) {
+        html += '<div class="calendar-day empty"></div>';
+      }
+
+      html += '</div>';
+      calendar.innerHTML = html;
+    }
+
+    function updateTodayMood() {
+      const today = new Date().toDateString();
+      const currentUser = getCurrentUser();
+      const moods = JSON.parse(localStorage.getItem('mindful_moods')) || {};
+      const todayMood = moods[currentUser.id]?.[today];
+
+      if (todayMood) {
+        document.querySelector(`[data-mood="${todayMood.mood}"]`)?.classList.add('selected');
+        document.getElementById('mood-feedback').innerHTML = `
+          <div class="mood-response">
+            <p>You're feeling ${todayMood.mood} today ${todayMood.emoji}</p>
+            <p class="mood-tip">${getMoodTip(todayMood.mood)}</p>
+          </div>
+        `;
+      }
+    }
+
+    // Initialization
+    checkAuth();
+    loadUserData();
+    generateCalendar();
+    loadGratitudes();
+    updateTodayMood();
+
+    function loadUserData() {
+      const currentUser = getCurrentUser();
+      document.getElementById('user-name-display').textContent = currentUser.name;
+    }
+  </script>
+</body>
+</html>

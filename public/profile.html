@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindfulSpace - Profile</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="main-body">
+    <div class="floating-leaves">
+        <div class="leaf leaf-1">🍃</div>
+        <div class="leaf leaf-2">🌿</div>
+        <div class="leaf leaf-3">🍃</div>
+        <div class="leaf leaf-4">🌿</div>
+        <div class="leaf leaf-5">🍃</div>
+        <div class="leaf leaf-6">🌱</div>
+    </div>
+
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-leaf"></i>
+                <h2>MindfulSpace</h2>
+            </div>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="home.html" class="menu-item">
+                <i class="fas fa-home"></i> Home
+            </a></li>
+            <li><a href="journal.html" class="menu-item">
+                <i class="fas fa-book"></i> Journal
+            </a></li>
+            <li><a href="support.html" class="menu-item">
+                <i class="fas fa-users"></i> Support Group
+            </a></li>
+            <li><a href="connect.html" class="menu-item">
+                <i class="fas fa-user-friends"></i> Connect
+            </a></li>
+            <li><a href="profile.html" class="menu-item active">
+                <i class="fas fa-user"></i> Profile
+            </a></li>
+            <li><a href="#" onclick="logout()" class="menu-item logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1><i class="fas fa-user-circle"></i> My Profile</h1>
+            <p id="profile-subtitle">Manage your personal information and track your wellness journey</p>
+        </div>
+
+        <div class="profile-container">
+            <div class="profile-form card">
+                <h3><i class="fas fa-edit"></i> Personal Information</h3>
+                <form id="profile-form">
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label><i class="fas fa-user"></i> Full Name</label>
+                            <input type="text" id="profile-name" required>
+                        </div>
+                        <div class="input-group">
+                            <label><i class="fas fa-birthday-cake"></i> Age</label>
+                            <input type="number" id="profile-age" min="13" max="120" required>
+                        </div>
+                        <div class="input-group">
+                            <label><i class="fas fa-venus-mars"></i> Gender</label>
+                            <select id="profile-gender" required>
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="non-binary">Non-binary</option>
+                                <option value="prefer-not-to-say">Prefer not to say</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label><i class="fas fa-envelope"></i> Email</label>
+                            <input type="email" id="profile-email" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label><i class="fas fa-quote-left"></i> Bio (Optional)</label>
+                        <textarea id="profile-bio" placeholder="Tell us a little about yourself and your wellness journey..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Update Profile
+                    </button>
+                </form>
+            </div>
+
+            <div class="profile-stats card">
+                <h3><i class="fas fa-chart-line"></i> Your Wellness Journey</h3>
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <span class="stat-number" id="journal-count">0</span>
+                        <span class="stat-label">Journal Entries</span>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-smile"></i>
+                        </div>
+                        <span class="stat-number" id="mood-count">0</span>
+                        <span class="stat-label">Mood Entries</span>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <span class="stat-number" id="gratitude-count">0</span>
+                        <span class="stat-label">Gratitude Notes</span>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar"></i>
+                        </div>
+                        <span class="stat-number" id="days-active">0</span>
+                        <span class="stat-label">Days Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-achievements card">
+                <h3><i class="fas fa-trophy"></i> Achievements</h3>
+                <div class="achievements-grid" id="achievements-list">
+                    <!-- Achievements will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        // Check authentication
+        checkAuth();
+        
+        // Check if this is initial setup
+        const urlParams = new URLSearchParams(window.location.search);
+        const isSetup = urlParams.get('setup') === 'true';
+        
+        if (isSetup) {
+            document.getElementById('profile-subtitle').textContent = 'Complete your profile to get started on your wellness journey';
+            showNotification('Welcome! Please complete your profile to continue.', 'info');
+        }
+        
+        // Load profile data
+        loadProfile();
+        updateStats();
+        loadAchievements();
+
+        document.getElementById('profile-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            updateProfile();
+        });
+
+        function loadProfile() {
+            const currentUser = getCurrentUser();
+            document.getElementById('profile-name').value = currentUser.name || '';
+            document.getElementById('profile-age').value = currentUser.age || '';
+            document.getElementById('profile-gender').value = currentUser.gender || '';
+            document.getElementById('profile-email').value = currentUser.email || '';
+            document.getElementById('profile-bio').value = currentUser.bio || '';
+        }
+
+        function updateProfile() {
+            const currentUser = getCurrentUser();
+            const users = JSON.parse(localStorage.getItem('mindful_users')) || [];
+            
+            // Update current user object
+            currentUser.name = document.getElementById('profile-name').value;
+            currentUser.age = parseInt(document.getElementById('profile-age').value);
+            currentUser.gender = document.getElementById('profile-gender').value;
+            currentUser.bio = document.getElementById('profile-bio').value;
+            currentUser.profileComplete = true;
+            
+            // Update in users array
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+                localStorage.setItem('mindful_users', JSON.stringify(users));
+                localStorage.setItem('mindful_current_user', JSON.stringify(currentUser));
+            }
+            
+            showNotification('Profile updated successfully! 🌱', 'success');
+            
+            // If this was initial setup, redirect to home
+            if (isSetup) {
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 1500);
+            }
+        }
+
+        function updateStats() {
+            const currentUser = getCurrentUser();
+            const journalEntries = JSON.parse(localStorage.getItem('mindful_journal')) || [];
+            const moods = JSON.parse(localStorage.getItem('mindful_moods')) || {};
+            const gratitudes = JSON.parse(localStorage.getItem('mindful_gratitudes')) || {};
+            
+            const userJournalCount = journalEntries.filter(entry => entry.userId === currentUser.id).length;
+            const userMoodCount = Object.keys(moods[currentUser.id] || {}).length;
+            const userGratitudeCount = Object.values(gratitudes[currentUser.id] || {}).reduce((total, dayGratitudes) => total + dayGratitudes.length, 0);
+            
+            // Calculate days active
+            const joinDate = new Date(currentUser.joinDate);
+            const today = new Date();
+            const daysActive = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24)) + 1;
+            
+            document.getElementById('journal-count').textContent = userJournalCount;
+            document.getElementById('mood-count').textContent = userMoodCount;
+            document.getElementById('gratitude-count').textContent = userGratitudeCount;
+            document.getElementById('days-active').textContent = daysActive;
+        }
+
+        function loadAchievements() {
+            const currentUser = getCurrentUser();
+            const journalEntries = JSON.parse(localStorage.getItem('mindful_journal')) || [];
+            const moods = JSON.parse(localStorage.getItem('mindful_moods')) || {};
+            const gratitudes = JSON.parse(localStorage.getItem('mindful_gratitudes')) || {};
+            
+            const userJournalCount = journalEntries.filter(entry => entry.userId === currentUser.id).length;
+            const userMoodCount = Object.keys(moods[currentUser.id] || {}).length;
+            const userGratitudeCount = Object.values(gratitudes[currentUser.id] || {}).reduce((total, dayGratitudes) => total + dayGratitudes.length, 0);
+            
+            const achievements = [
+                {
+                    id: 'first-entry',
+                    title: 'First Steps',
+                    description: 'Write your first journal entry',
+                    icon: 'fas fa-pen',
+                    unlocked: userJournalCount >= 1
+                },
+                {
+                    id: 'mood-tracker',
+                    title: 'Mood Tracker',
+                    description: 'Track your mood for 7 days',
+                    icon: 'fas fa-smile',
+                    unlocked: userMoodCount >= 7
+                },
+                {
+                    id: 'grateful-heart',
+                    title: 'Grateful Heart',
+                    description: 'Write 10 gratitude notes',
+                    icon: 'fas fa-heart',
+                    unlocked: userGratitudeCount >= 10
+                },
+                {
+                    id: 'journal-writer',
+                    title: 'Journal Writer',
+                    description: 'Write 10 journal entries',
+                    icon: 'fas fa-book',
+                    unlocked: userJournalCount >= 10
+                },
+                {
+                    id: 'community-member',
+                    title: 'Community Member',
+                    description: 'Share your first public entry',
+                    icon: 'fas fa-users',
+                    unlocked: journalEntries.some(entry => entry.userId === currentUser.id && entry.isPublic)
+                },
+                {
+                    id: 'wellness-warrior',
+                    title: 'Wellness Warrior',
+                    description: 'Complete 30 days of activity',
+                    icon: 'fas fa-trophy',
+                    unlocked: Object.keys(moods[currentUser.id] || {}).length >= 30
+                }
+            ];
+            
+            const achievementsList = document.getElementById('achievements-list');
+            achievementsList.innerHTML = achievements.map(achievement => `
+                <div class="achievement ${achievement.unlocked ? 'unlocked' : 'locked'}">
+                    <div class="achievement-icon">
+                        <i class="${achievement.icon}"></i>
+                    </div>
+                    <div class="achievement-info">
+                        <h4>${achievement.title}</h4>
+                        <p>${achievement.description}</p>
+                    </div>
+                    <div class="achievement-status">
+                        ${achievement.unlocked ? 
+                            '<i class="fas fa-check-circle"></i>' : 
+                            '<i class="fas fa-lock"></i>'
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindfulSpace - Sign Up</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="auth-body">
+    <div class="floating-leaves">
+        <div class="leaf leaf-1">🍃</div>
+        <div class="leaf leaf-2">🌿</div>
+        <div class="leaf leaf-3">🍃</div>
+        <div class="leaf leaf-4">🌿</div>
+        <div class="leaf leaf-5">🍃</div>
+    </div>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fas fa-leaf"></i>
+                    <h1>MindfulSpace</h1>
+                </div>
+                <p>Join our peaceful community</p>
+            </div>
+            
+            <form id="signup-form" class="auth-form">
+                <h2>Create Account</h2>
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="signup-name" placeholder="Full Name" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="signup-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="signup-password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="auth-btn">
+                    <i class="fas fa-user-plus"></i>
+                    Create Account
+                </button>
+                <div id="signup-message" class="message"></div>
+            </form>
+            
+            <p class="auth-switch">
+                Already have an account? 
+                <a href="login.html">Sign in here</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleSignup();
+        });
+
+        function handleSignup() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const messageDiv = document.getElementById('signup-message');
+
+            const users = JSON.parse(localStorage.getItem('mindful_users')) || [];
+            
+            if (users.find(u => u.email === email)) {
+                messageDiv.innerHTML = '<div class="error">Email already exists. Please use a different email.</div>';
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                name,
+                email,
+                password,
+                age: '',
+                gender: '',
+                bio: '',
+                joinDate: new Date().toISOString(),
+                profileComplete: false
+            };
+
+            users.push(newUser);
+            localStorage.setItem('mindful_users', JSON.stringify(users));
+            localStorage.setItem('mindful_current_user', JSON.stringify(newUser));
+            
+            messageDiv.innerHTML = '<div class="success">Account created! Redirecting to complete your profile...</div>';
+            setTimeout(() => {
+                window.location.href = 'profile.html?setup=true';
+            }, 1500);
+        }
+
+        // Check if already logged in
+        if (localStorage.getItem('mindful_current_user')) {
+            window.location.href = 'home.html';
+        }
+    </script>
+</body>
+</html>
