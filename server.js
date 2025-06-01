@@ -89,7 +89,7 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, "login")));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Request logging middleware (only in development)
 if (process.env.NODE_ENV !== 'production') {
@@ -254,7 +254,7 @@ app.get("/api/db-info", async (req, res) => {
 
 // Serve frontend files - updated for combined deployment
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 // Error handling middleware
