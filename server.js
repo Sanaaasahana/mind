@@ -89,7 +89,7 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "login")));
 
 // Request logging middleware (only in development)
 if (process.env.NODE_ENV !== 'production') {
