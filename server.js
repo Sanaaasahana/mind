@@ -9,19 +9,64 @@ require("dotenv").config()
 const app = express()
 const PORT = process.env.PORT || 3000
 
-// Database connection
+console.log('🚀 Starting MindfulSpace server...')
+console.log('Environment:', process.env.NODE_ENV || 'production')
+console.log('Port:', PORT)
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL)
+console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET)
+
+// Database connection with better error handling
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+  ssl: {
+    rejectUnauthorized: false // Required for Neon and most cloud databases
+  },
+  // Connection pool settings for production
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+})
+
+// Test database connection on startup
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('❌ Error connecting to database:', err.stack)
+    process.exit(1) // Exit if can't connect to database
+  } else {
+    console.log('✅ Database connected successfully')
+    release()
+  }
 })
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500', 'http://127.0.0.1:5500'],
-  credentials: true
+  origin: [
+    'http://localhost:3000', 
+    'http://127.0.0.1:3000', 
+    'http://localhost:5500', 
+    'http://127.0.0.1:5500',
+    'http://localhost:8080',
+    process.env.FRONTEND_URL, // Add this to your Render environment variables
+    /\.onrender\.com$/ // Allow any onrender.com subdomain
+  ].filter(Boolean), // Remove undefined values
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }))
-app.use(express.json())
-app.use(express.static(path.join(__dirname, "public"))) // Serve static files
+
+app.use(express.json({ limit: '10mb' }))
+app.use(express.static(path.join(__dirname, "public")))
+
+// Request logging middleware (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
+    if (req.body && Object.keys(req.body).length > 0) {
+      console.log('Request body:', { ...req.body, password: req.body.password ? '[HIDDEN]' : undefined })
+    }
+    next()
+  })
+}
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || "mindful-space-secret-key-change-in-production"
@@ -44,10 +89,10 @@ const authenticateToken = (req, res, next) => {
   })
 }
 
-// Initialize database tables ONLY (no sample data)
+// Initialize database tables
 async function initDatabase() {
   try {
-    console.log("Initializing database tables...")
+    console.log("🔄 Initializing database tables...")
 
     // Users table
     await pool.query(`
@@ -144,46 +189,111 @@ async function initDatabase() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_journal_entries_public ON journal_entries(is_public)`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_mood_entries_user_date ON mood_entries(user_id, date)`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_gratitude_entries_user_date ON gratitude_entries(user_id, date)`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_friend_requests_requester ON friend_requests(requester_id)`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_friend_requests_requested ON friend_requests(requested_id)`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id)`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_support_interactions_sender ON support_interactions(sender_id)`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_support_interactions_receiver ON support_interactions(receiver_id)`)
 
-    console.log("Database tables initialized successfully")
+    console.log("✅ Database tables created successfully")
 
-    // Only insert sample data if no users exist
+    // Check existing users
     const userCount = await pool.query("SELECT COUNT(*) FROM users")
-    if (parseInt(userCount.rows[0].count) === 0) {
-      console.log("No users found, inserting sample data...")
+    console.log(`📊 Current user count: ${userCount.rows[0].count}`)
+
+    // Only insert sample data in development or if explicitly requested
+    if (parseInt(userCount.rows[0].count) === 0 && (process.env.NODE_ENV !== 'production' || process.env.INSERT_SAMPLE_DATA === 'true')) {
+      console.log("🔄 No users found, inserting sample data...")
       await insertSampleData()
-    } else {
-      console.log(`Database already has ${userCount.rows[0].count} users, skipping sample data`)
     }
 
   } catch (error) {
-    console.error("Database initialization error:", error)
+    console.error("❌ Database initialization error:", error)
+    throw error // Re-throw to prevent server from starting with broken DB
   }
 }
 
-// Insert sample data only if database is empty
 async function insertSampleData() {
   try {
     const hashedPassword = await bcrypt.hash('password123', 10)
 
-    // Insert sample users
-    await pool.query(`
+    const result = await pool.query(`
       INSERT INTO users (email, password, name, age, gender, bio, profile_complete, join_date) VALUES
-      ('sarah@example.com', $1, 'Sarah Johnson', 28, 'female', 'Mental health advocate and yoga enthusiast.', true, NOW() - INTERVAL '30 days'),
-      ('michael@example.com', $1, 'Michael Chen', 34, 'male', 'Meditation practitioner and wellness coach.', true, NOW() - INTERVAL '15 days'),
-      ('emma@example.com', $1, 'Emma Rodriguez', 25, 'female', 'Art therapy student learning to heal through creativity.', true, NOW() - INTERVAL '7 days')
+      ('sarah@example.com', $1, 'Sarah Johnson', 28, 'female', 'Mental health advocate and yoga enthusiast', true, NOW() - INTERVAL '30 days'),
+      ('michael@example.com', $1, 'Michael Chen', 34, 'male', 'Meditation practitioner and wellness coach', true, NOW() - INTERVAL '15 days'),
+      ('emma@example.com', $1, 'Emma Rodriguez', 25, 'female', 'Art therapy student learning to heal through creativity', true, NOW() - INTERVAL '7 days')
+      ON CONFLICT (email) DO NOTHING
+      RETURNING id, email, name
     `, [hashedPassword])
 
-    console.log("Sample users inserted successfully")
+    console.log("✅ Sample users inserted:", result.rows)
+
+    // Insert sample journal entries if users were created
+    if (result.rows.length > 0) {
+      await pool.query(`
+        INSERT INTO journal_entries (user_id, content, category, is_public, created_at) VALUES
+        (1, 'Today I practiced gratitude meditation for 20 minutes. It helped me center myself and appreciate the small moments of joy in my day.', 'mindfulness', true, NOW() - INTERVAL '2 days'),
+        (2, 'Dealing with work stress has been challenging lately. I''ve been using breathing exercises and they really help.', 'stress', true, NOW() - INTERVAL '1 day'),
+        (3, 'Art therapy session today was incredible. I painted my emotions and it felt so liberating.', 'personal-growth', true, NOW())
+        ON CONFLICT DO NOTHING
+      `)
+
+      // Insert sample mood entries
+      await pool.query(`
+        INSERT INTO mood_entries (user_id, mood, emoji, date) VALUES
+        (1, 'happy', '😊', CURRENT_DATE - INTERVAL '2 days'),
+        (1, 'calm', '😌', CURRENT_DATE - INTERVAL '1 day'),
+        (2, 'anxious', '😰', CURRENT_DATE - INTERVAL '2 days'),
+        (2, 'calm', '😌', CURRENT_DATE - INTERVAL '1 day'),
+        (3, 'happy', '😊', CURRENT_DATE - INTERVAL '1 day')
+        ON CONFLICT (user_id, date) DO NOTHING
+      `)
+
+      console.log("✅ Sample data inserted successfully")
+    }
   } catch (error) {
-    console.error("Error inserting sample data:", error)
+    console.error("❌ Error inserting sample data:", error)
   }
+}
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ 
+    status: "OK", 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: "Connected"
+  })
+})
+
+// Database test endpoint (disable in production for security)
+if (process.env.NODE_ENV !== 'production') {
+  app.get("/api/test-db", async (req, res) => {
+    try {
+      const result = await pool.query('SELECT NOW() as current_time')
+      const userCount = await pool.query('SELECT COUNT(*) FROM users')
+      const users = await pool.query('SELECT id, email, name FROM users LIMIT 5')
+      
+      res.json({
+        status: 'Database connection successful',
+        currentTime: result.rows[0].current_time,
+        userCount: userCount.rows[0].count,
+        sampleUsers: users.rows
+      })
+    } catch (error) {
+      console.error('Database test error:', error)
+      res.status(500).json({ 
+        error: 'Database connection failed', 
+        details: error.message 
+      })
+    }
+  })
 }
 
 // Auth Routes
 app.post("/api/register", async (req, res) => {
   try {
-    console.log("Registration attempt:", { email: req.body.email, name: req.body.name })
+    console.log("🔄 Registration attempt for:", req.body.email)
 
     const { email, password, name } = req.body
 
@@ -195,15 +305,14 @@ app.post("/api/register", async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters long" })
     }
 
-    // Check if user already exists
+    // Check if user exists
     const existingUser = await pool.query("SELECT id FROM users WHERE email = $1", [email])
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ error: "User already exists with this email" })
     }
 
     // Hash password
-    const saltRounds = 10
-    const hashedPassword = await bcrypt.hash(password, saltRounds)
+    const hashedPassword = await bcrypt.hash(password, 10)
 
     // Create user
     const result = await pool.query(
@@ -212,9 +321,9 @@ app.post("/api/register", async (req, res) => {
     )
 
     const user = result.rows[0]
-    console.log("User created successfully:", { id: user.id, email: user.email, name: user.name })
+    console.log("✅ User created successfully:", { id: user.id, email: user.email })
 
-    // Generate JWT token
+    // Generate token
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" })
 
     res.status(201).json({
@@ -229,14 +338,14 @@ app.post("/api/register", async (req, res) => {
       },
     })
   } catch (error) {
-    console.error("Registration error:", error)
+    console.error("❌ Registration error:", error)
     res.status(500).json({ error: "Internal server error" })
   }
 })
 
 app.post("/api/login", async (req, res) => {
   try {
-    console.log("Login attempt:", { email: req.body.email })
+    console.log("🔄 Login attempt for:", req.body.email)
 
     const { email, password } = req.body
 
@@ -244,23 +353,19 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" })
     }
 
-    // Find user
     const result = await pool.query("SELECT * FROM users WHERE email = $1", [email])
     if (result.rows.length === 0) {
       return res.status(401).json({ error: "Invalid email or password" })
     }
 
     const user = result.rows[0]
-
-    // Check password
     const isValidPassword = await bcrypt.compare(password, user.password)
     if (!isValidPassword) {
       return res.status(401).json({ error: "Invalid email or password" })
     }
 
-    console.log("Login successful for user:", { id: user.id, email: user.email })
+    console.log("✅ Login successful for:", user.email)
 
-    // Generate JWT token
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" })
 
     res.json({
@@ -278,7 +383,7 @@ app.post("/api/login", async (req, res) => {
       },
     })
   } catch (error) {
-    console.error("Login error:", error)
+    console.error("❌ Login error:", error)
     res.status(500).json({ error: "Internal server error" })
   }
 })
@@ -442,11 +547,14 @@ app.post("/api/mood", authenticateToken, async (req, res) => {
 
 app.get("/api/mood", authenticateToken, async (req, res) => {
   try {
-    const { month, year } = req.query
+    const { month, year, date } = req.query
     let query = "SELECT * FROM mood_entries WHERE user_id = $1"
     let params = [req.user.userId]
 
-    if (month && year) {
+    if (date) {
+      query += " AND date = $2"
+      params.push(date)
+    } else if (month && year) {
       query += " AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3"
       params.push(month, year)
     }
@@ -645,14 +753,9 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"))
 })
 
-// Health check
-app.get("/health", (req, res) => {
-  res.json({ status: "OK", timestamp: new Date().toISOString() })
-})
-
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack)
+  console.error("❌ Unhandled error:", err.stack)
   res.status(500).json({ error: "Something went wrong!" })
 })
 
@@ -661,15 +764,38 @@ app.use("/api/*", (req, res) => {
   res.status(404).json({ error: "API route not found" })
 })
 
-// Serve frontend for all other routes
+// Serve frontend for all other routes (SPA support)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"))
 })
 
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully')
+  pool.end(() => {
+    console.log('Database pool closed')
+    process.exit(0)
+  })
+})
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully')
+  pool.end(() => {
+    console.log('Database pool closed')
+    process.exit(0)
+  })
+})
+
 // Start server
 app.listen(PORT, async () => {
-  console.log(`MindfulSpace server running on port ${PORT}`)
-  await initDatabase()
+  console.log(`🚀 MindfulSpace server running on port ${PORT}`)
+  try {
+    await initDatabase()
+    console.log("🎉 Server started successfully!")
+  } catch (error) {
+    console.error("❌ Failed to initialize database:", error)
+    process.exit(1)
+  }
 })
 
 module.exports = app
