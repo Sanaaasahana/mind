@@ -15,7 +15,6 @@
         <div class="leaf leaf-3">🍃</div>
         <div class="leaf leaf-4">🌿</div>
         <div class="leaf leaf-5">🍃</div>
-        <div class="leaf leaf-6">🌱</div>
     </div>
 
     <div class="auth-container">
@@ -25,33 +24,68 @@
                     <i class="fas fa-leaf"></i>
                     <h1>MindfulSpace</h1>
                 </div>
-                <p>Welcome back to your wellness journey</p>
+                <p>Welcome back to your peaceful sanctuary</p>
             </div>
-
+            
             <form id="login-form" class="auth-form">
+                <h2>Sign In</h2>
                 <div class="input-group">
                     <i class="fas fa-envelope"></i>
-                    <input type="email" id="email" placeholder="Email" required>
+                    <input type="email" id="login-email" placeholder="Email" required>
                 </div>
                 <div class="input-group">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" placeholder="Password" required>
+                    <input type="password" id="login-password" placeholder="Password" required>
                 </div>
                 <button type="submit" class="auth-btn">
                     <i class="fas fa-sign-in-alt"></i>
                     Sign In
                 </button>
+                <div id="login-message" class="message"></div>
             </form>
-
-            <div class="auth-footer">
-                <p>Don't have an account? <a href="signup.html">Sign up here</a></p>
-            </div>
+            
+            <p class="auth-switch">
+                Don't have an account? 
+                <a href="signup.html">Create one here</a>
+            </p>
         </div>
     </div>
 
     <script>
-        // API base URL - change this to your server URL
-        const API_BASE_URL = 'http://localhost:3000/api';
+        // Utility functions from script.js
+        function getCurrentUser() {
+            const user = localStorage.getItem("mindful_current_user");
+            return user ? JSON.parse(user) : null;
+        }
+
+        function autoLoginForDev() {
+            if (!localStorage.getItem("mindful_current_user")) {
+                const devUser = {
+                    id: 1,
+                    name: "Sarah Johnson",
+                    email: "sarah@example.com"
+                };
+                localStorage.setItem("mindful_current_user", JSON.stringify(devUser));
+                console.warn("Auto-login test user for development.");
+            }
+        }
+
+        function checkAuth() {
+            autoLoginForDev();
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                window.location.href = "login.html";
+                return false;
+            }
+            return true;
+        }
+
+        function logout() {
+            if (confirm("Are you sure you want to logout?")) {
+                localStorage.removeItem("mindful_current_user");
+                window.location.href = "login.html";
+            }
+        }
 
         function showNotification(message, type = "info") {
             const notification = document.createElement("div");
@@ -137,56 +171,114 @@
             }, 5000);
         }
 
-        // Check if user is already logged in
-        if (localStorage.getItem('mindful_token')) {
-            window.location.href = 'home.html';
+        function initializeSampleData() {
+            const users = JSON.parse(localStorage.getItem("mindful_users")) || [];
+
+            if (users.length === 0) {
+                const sampleUsers = [
+                    {
+                        id: 1,
+                        name: "Sarah Johnson",
+                        email: "sarah@example.com",
+                        password: "password123",
+                        age: 28,
+                        gender: "female",
+                        bio: "Mental health advocate and yoga enthusiast. Finding peace in mindfulness.",
+                        joinDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        profileComplete: true,
+                    },
+                    {
+                        id: 2,
+                        name: "Michael Chen",
+                        email: "michael@example.com",
+                        password: "password123",
+                        age: 34,
+                        gender: "male",
+                        bio: "Meditation practitioner and wellness coach. Here to support and grow.",
+                        joinDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+                        profileComplete: true,
+                    },
+                    {
+                        id: 3,
+                        name: "Emma Rodriguez",
+                        email: "emma@example.com",
+                        password: "password123",
+                        age: 25,
+                        gender: "female",
+                        bio: "Art therapy student learning to heal through creativity and community.",
+                        joinDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        profileComplete: true,
+                    },
+                ];
+
+                localStorage.setItem("mindful_users", JSON.stringify(sampleUsers));
+
+                const sampleEntries = [
+                    {
+                        id: Date.now() + 1,
+                        userId: 1,
+                        userName: "Sarah Johnson",
+                        content: "Today I practiced gratitude meditation for 20 minutes. It helped me center myself and appreciate the small moments of joy in my day. The morning sunlight through my window felt like a warm hug.",
+                        category: "mindfulness",
+                        isPublic: true,
+                        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                    },
+                    {
+                        id: Date.now() + 2,
+                        userId: 2,
+                        userName: "Michael Chen",
+                        content: "Dealing with work stress has been challenging lately. I've been using breathing exercises and they really help. Remember: this too shall pass. Taking it one day at a time.",
+                        category: "stress",
+                        isPublic: true,
+                        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                    },
+                    {
+                        id: Date.now() + 3,
+                        userId: 3,
+                        userName: "Emma Rodriguez",
+                        content: "Art therapy session today was incredible. I painted my emotions and it felt so liberating. Colors have a way of expressing what words cannot. Feeling grateful for this healing journey.",
+                        category: "personal-growth",
+                        isPublic: true,
+                        timestamp: new Date().toISOString(),
+                    },
+                ];
+
+                localStorage.setItem("mindful_journal", JSON.stringify(sampleEntries));
+            }
         }
 
-        document.getElementById('login-form').addEventListener('submit', async function(e) {
+        // Initialize sample data
+        initializeSampleData();
+
+        // Login specific functionality
+        document.getElementById('login-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            if (!email || !password) {
-                showNotification('Please fill in all fields', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email, password }),
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Store token and user data
-                    localStorage.setItem('mindful_token', data.token);
-                    localStorage.setItem('mindful_current_user', JSON.stringify(data.user));
-                    
-                    showNotification('Login successful! Welcome back 🌱', 'success');
-                    
-                    // Redirect based on profile completion
-                    setTimeout(() => {
-                        if (data.user.profileComplete) {
-                            window.location.href = 'home.html';
-                        } else {
-                            window.location.href = 'profile.html?setup=true';
-                        }
-                    }, 1500);
-                } else {
-                    showNotification(data.error || 'Login failed', 'error');
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                showNotification('Network error. Please try again.', 'error');
-            }
+            handleLogin();
         });
+
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const messageDiv = document.getElementById('login-message');
+
+            const users = JSON.parse(localStorage.getItem('mindful_users')) || [];
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                localStorage.setItem('mindful_current_user', JSON.stringify(user));
+                messageDiv.innerHTML = '<div class="success">Login successful! Redirecting...</div>';
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 1000);
+            } else {
+                messageDiv.innerHTML = '<div class="error">Invalid email or password. Please try again.</div>';
+            }
+        }
+
+        // Check if already logged in
+        if (localStorage.getItem('mindful_current_user')) {
+            window.location.href = 'home.html';
+        }
     </script>
 </body>
 </html>
