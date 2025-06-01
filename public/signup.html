@@ -15,6 +15,7 @@
         <div class="leaf leaf-3">🍃</div>
         <div class="leaf leaf-4">🌿</div>
         <div class="leaf leaf-5">🍃</div>
+        <div class="leaf leaf-6">🌱</div>
     </div>
 
     <div class="auth-container">
@@ -24,43 +25,41 @@
                     <i class="fas fa-leaf"></i>
                     <h1>MindfulSpace</h1>
                 </div>
-                <p>Join our peaceful community</p>
+                <p>Begin your wellness journey today</p>
             </div>
-            
+
             <form id="signup-form" class="auth-form">
-                <h2>Create Account</h2>
                 <div class="input-group">
                     <i class="fas fa-user"></i>
-                    <input type="text" id="signup-name" placeholder="Full Name" required>
+                    <input type="text" id="name" placeholder="Full Name" required>
                 </div>
                 <div class="input-group">
                     <i class="fas fa-envelope"></i>
-                    <input type="email" id="signup-email" placeholder="Email" required>
+                    <input type="email" id="email" placeholder="Email" required>
                 </div>
                 <div class="input-group">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="signup-password" placeholder="Password" required>
+                    <input type="password" id="password" placeholder="Password (min 6 characters)" required minlength="6">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="confirm-password" placeholder="Confirm Password" required>
                 </div>
                 <button type="submit" class="auth-btn">
                     <i class="fas fa-user-plus"></i>
                     Create Account
                 </button>
-                <div id="signup-message" class="message"></div>
             </form>
-            
-            <p class="auth-switch">
-                Already have an account? 
-                <a href="login.html">Sign in here</a>
-            </p>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="login.html">Sign in here</a></p>
+            </div>
         </div>
     </div>
 
     <script>
-        // Utility functions from script.js
-        function getCurrentUser() {
-            const user = localStorage.getItem("mindful_current_user");
-            return user ? JSON.parse(user) : null;
-        }
+        // API base URL - change this to your server URL
+        const API_BASE_URL = 'http://localhost:3000/api';
 
         function showNotification(message, type = "info") {
             const notification = document.createElement("div");
@@ -146,51 +145,64 @@
             }, 5000);
         }
 
-        // Signup specific functionality
-        document.getElementById('signup-form').addEventListener('submit', function(e) {
+        // Check if user is already logged in
+        if (localStorage.getItem('mindful_token')) {
+            window.location.href = 'home.html';
+        }
+
+        document.getElementById('signup-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            handleSignup();
-        });
-
-        function handleSignup() {
-            const name = document.getElementById('signup-name').value;
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            const messageDiv = document.getElementById('signup-message');
-
-            const users = JSON.parse(localStorage.getItem('mindful_users')) || [];
             
-            if (users.find(u => u.email === email)) {
-                messageDiv.innerHTML = '<div class="error">Email already exists. Please use a different email.</div>';
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (!name || !email || !password || !confirmPassword) {
+                showNotification('Please fill in all fields', 'error');
                 return;
             }
 
-            const newUser = {
-                id: Date.now(),
-                name,
-                email,
-                password,
-                age: '',
-                gender: '',
-                bio: '',
-                joinDate: new Date().toISOString(),
-                profileComplete: false
-            };
+            if (password !== confirmPassword) {
+                showNotification('Passwords do not match', 'error');
+                return;
+            }
 
-            users.push(newUser);
-            localStorage.setItem('mindful_users', JSON.stringify(users));
-            localStorage.setItem('mindful_current_user', JSON.stringify(newUser));
-            
-            messageDiv.innerHTML = '<div class="success">Account created! Redirecting to complete your profile...</div>';
-            setTimeout(() => {
-                window.location.href = 'profile.html?setup=true';
-            }, 1500);
-        }
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters long', 'error');
+                return;
+            }
 
-        // Check if already logged in
-        if (localStorage.getItem('mindful_current_user')) {
-            window.location.href = 'home.html';
-        }
+            try {
+                const response = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store token and user data
+                    localStorage.setItem('mindful_token', data.token);
+                    localStorage.setItem('mindful_current_user', JSON.stringify(data.user));
+                    
+                    showNotification('Account created successfully! Welcome to MindfulSpace 🌱', 'success');
+                    
+                    // Redirect to profile setup
+                    setTimeout(() => {
+                        window.location.href = 'profile.html?setup=true';
+                    }, 1500);
+                } else {
+                    showNotification(data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showNotification('Network error. Please try again.', 'error');
+            }
+        });
     </script>
 </body>
 </html>
