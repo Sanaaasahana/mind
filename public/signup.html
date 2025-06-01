@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindfulSpace - Sign Up</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="auth-body">
+    <div class="floating-leaves">
+        <div class="leaf leaf-1">🍃</div>
+        <div class="leaf leaf-2">🌿</div>
+        <div class="leaf leaf-3">🍃</div>
+        <div class="leaf leaf-4">🌿</div>
+        <div class="leaf leaf-5">🍃</div>
+    </div>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fas fa-leaf"></i>
+                    <h1>MindfulSpace</h1>
+                </div>
+                <p>Join our peaceful community</p>
+            </div>
+            
+            <form id="signup-form" class="auth-form">
+                <h2>Create Account</h2>
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="signup-name" placeholder="Full Name" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="signup-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="signup-password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="auth-btn">
+                    <i class="fas fa-user-plus"></i>
+                    Create Account
+                </button>
+                <div id="signup-message" class="message"></div>
+            </form>
+            
+            <p class="auth-switch">
+                Already have an account? 
+                <a href="login.html">Sign in here</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Utility functions from script.js
+        function getCurrentUser() {
+            const user = localStorage.getItem("mindful_current_user");
+            return user ? JSON.parse(user) : null;
+        }
+
+        function showNotification(message, type = "info") {
+            const notification = document.createElement("div");
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="notification-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            if (!document.getElementById("notification-styles")) {
+                const styles = document.createElement("style");
+                styles.id = "notification-styles";
+                styles.textContent = `
+                    .notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        z-index: 10000;
+                        max-width: 400px;
+                        padding: 15px 20px;
+                        border-radius: 12px;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                        backdrop-filter: blur(10px);
+                        animation: slideInRight 0.3s ease-out;
+                    }
+                    .notification.success {
+                        background: rgba(40, 167, 69, 0.95);
+                        color: white;
+                        border: 1px solid rgba(40, 167, 69, 0.3);
+                    }
+                    .notification.error {
+                        background: rgba(220, 53, 69, 0.95);
+                        color: white;
+                        border: 1px solid rgba(220, 53, 69, 0.3);
+                    }
+                    .notification.info {
+                        background: rgba(23, 162, 184, 0.95);
+                        color: white;
+                        border: 1px solid rgba(23, 162, 184, 0.3);
+                    }
+                    .notification-content {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 15px;
+                    }
+                    .notification-close {
+                        background: none;
+                        border: none;
+                        color: white;
+                        cursor: pointer;
+                        padding: 5px;
+                        border-radius: 50%;
+                        transition: all 0.3s ease;
+                    }
+                    .notification-close:hover {
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+                    @keyframes slideInRight {
+                        from {
+                            transform: translateX(100%);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Signup specific functionality
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleSignup();
+        });
+
+        function handleSignup() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const messageDiv = document.getElementById('signup-message');
+
+            const users = JSON.parse(localStorage.getItem('mindful_users')) || [];
+            
+            if (users.find(u => u.email === email)) {
+                messageDiv.innerHTML = '<div class="error">Email already exists. Please use a different email.</div>';
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                name,
+                email,
+                password,
+                age: '',
+                gender: '',
+                bio: '',
+                joinDate: new Date().toISOString(),
+                profileComplete: false
+            };
+
+            users.push(newUser);
+            localStorage.setItem('mindful_users', JSON.stringify(users));
+            localStorage.setItem('mindful_current_user', JSON.stringify(newUser));
+            
+            messageDiv.innerHTML = '<div class="success">Account created! Redirecting to complete your profile...</div>';
+            setTimeout(() => {
+                window.location.href = 'profile.html?setup=true';
+            }, 1500);
+        }
+
+        // Check if already logged in
+        if (localStorage.getItem('mindful_current_user')) {
+            window.location.href = 'home.html';
+        }
+    </script>
+</body>
+</html>

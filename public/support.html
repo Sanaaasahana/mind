@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindfulSpace - Support Group</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="main-body">
+    <div class="floating-leaves">
+        <div class="leaf leaf-1">🍃</div>
+        <div class="leaf leaf-2">🌿</div>
+        <div class="leaf leaf-3">🍃</div>
+        <div class="leaf leaf-4">🌿</div>
+        <div class="leaf leaf-5">🍃</div>
+        <div class="leaf leaf-6">🌱</div>
+    </div>
+
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-leaf"></i>
+                <h2>MindfulSpace</h2>
+            </div>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="home.html" class="menu-item">
+                <i class="fas fa-home"></i> Home
+            </a></li>
+            <li><a href="journal.html" class="menu-item">
+                <i class="fas fa-book"></i> Journal
+            </a></li>
+            <li><a href="support.html" class="menu-item active">
+                <i class="fas fa-users"></i> Support Group
+            </a></li>
+            <li><a href="connect.html" class="menu-item">
+                <i class="fas fa-user-friends"></i> Connect
+            </a></li>
+            <li><a href="profile.html" class="menu-item">
+                <i class="fas fa-user"></i> Profile
+            </a></li>
+            <li><a href="#" onclick="logout()" class="menu-item logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1><i class="fas fa-hands-helping"></i> Support Group</h1>
+            <p>Connect with others and find strength in shared experiences</p>
+        </div>
+
+        <div class="support-container">
+            <div class="search-section card">
+                <h3><i class="fas fa-search"></i> Find Support</h3>
+                <div class="search-controls">
+                    <div class="search-bar">
+                        <input type="text" id="support-search" placeholder="Search by category or keywords (e.g., anxiety, depression, stress)">
+                        <button onclick="searchSupport()" class="btn-primary">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <div class="filter-options">
+                        <select id="category-filter" onchange="filterByCategory()">
+                            <option value="">All Categories</option>
+                            <option value="anxiety">Anxiety</option>
+                            <option value="depression">Depression</option>
+                            <option value="stress">Stress</option>
+                            <option value="happiness">Happiness</option>
+                            <option value="relationships">Relationships</option>
+                            <option value="work">Work</option>
+                            <option value="personal-growth">Personal Growth</option>
+                            <option value="self-care">Self Care</option>
+                            <option value="mindfulness">Mindfulness</option>
+                        </select>
+                        <button onclick="clearFilters()" class="btn-secondary">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="public-entries card">
+                <h3><i class="fas fa-heart"></i> Community Shares</h3>
+                <div class="entries-stats">
+                    <span id="entries-count">0 shared experiences</span>
+                </div>
+                <div id="public-entries-list" class="entries-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Utility functions from script.js
+        function getCurrentUser() {
+            const user = localStorage.getItem("mindful_current_user");
+            return user ? JSON.parse(user) : null;
+        }
+
+        function autoLoginForDev() {
+            if (!localStorage.getItem("mindful_current_user")) {
+                const devUser = {
+                    id: 1,
+                    name: "Sarah Johnson",
+                    email: "sarah@example.com"
+                };
+                localStorage.setItem("mindful_current_user", JSON.stringify(devUser));
+                console.warn("Auto-login test user for development.");
+            }
+        }
+
+        function checkAuth() {
+            autoLoginForDev();
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                window.location.href = "login.html";
+                return false;
+            }
+            return true;
+        }
+
+        function logout() {
+            if (confirm("Are you sure you want to logout?")) {
+                localStorage.removeItem("mindful_current_user");
+                window.location.href = "login.html";
+            }
+        }
+
+        function showNotification(message, type = "info") {
+            const notification = document.createElement("div");
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="notification-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            if (!document.getElementById("notification-styles")) {
+                const styles = document.createElement("style");
+                styles.id = "notification-styles";
+                styles.textContent = `
+                    .notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        z-index: 10000;
+                        max-width: 400px;
+                        padding: 15px 20px;
+                        border-radius: 12px;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                        backdrop-filter: blur(10px);
+                        animation: slideInRight 0.3s ease-out;
+                    }
+                    .notification.success {
+                        background: rgba(40, 167, 69, 0.95);
+                        color: white;
+                        border: 1px solid rgba(40, 167, 69, 0.3);
+                    }
+                    .notification.error {
+                        background: rgba(220, 53, 69, 0.95);
+                        color: white;
+                        border: 1px solid rgba(220, 53, 69, 0.3);
+                    }
+                    .notification.info {
+                        background: rgba(23, 162, 184, 0.95);
+                        color: white;
+                        border: 1px solid rgba(23, 162, 184, 0.3);
+                    }
+                    .notification-content {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 15px;
+                    }
+                    .notification-close {
+                        background: none;
+                        border: none;
+                        color: white;
+                        cursor: pointer;
+                        padding: 5px;
+                        border-radius: 50%;
+                        transition: all 0.3s ease;
+                    }
+                    .notification-close:hover {
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+                    @keyframes slideInRight {
+                        from {
+                            transform: translateX(100%);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Support page specific functionality
+        checkAuth();
+        loadPublicEntries();
+
+        function loadPublicEntries() {
+            const journalEntries = JSON.parse(localStorage.getItem('mindful_journal')) || [];
+            const publicEntries = journalEntries.filter(entry => entry.isPublic);
+            const publicList = document.getElementById('public-entries-list');
+            const entriesCount = document.getElementById('entries-count');
+            
+            entriesCount.textContent = `${publicEntries.length} shared experience${publicEntries.length !== 1 ? 's' : ''}`;
+            
+            if (publicEntries.length === 0) {
+                publicList.innerHTML = `
+                    <div class="no-entries">
+                        <i class="fas fa-heart"></i>
+                        <p>No public entries yet. Be the first to share your experience!</p>
+                        <a href="journal.html" class="btn-primary">
+                            <i class="fas fa-pen"></i> Write in Journal
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            publicList.innerHTML = publicEntries
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                .map(entry => `
+                    <div class="journal-entry public-entry" data-category="${entry.category}" data-content="${entry.content.toLowerCase()}">
+                        <div class="entry-header">
+                            <div class="entry-author">
+                                <div class="author-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="author-info">
+                                    <span class="author-name">${entry.userName}</span>
+                                    <span class="entry-date">
+                                        <i class="fas fa-calendar"></i>
+                                        ${new Date(entry.timestamp).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="entry-tags">
+                                ${entry.category ? `<span class="entry-category">${entry.category}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="entry-content">${entry.content}</div>
+                        <div class="entry-actions">
+                            <button onclick="sendSupport('${entry.userName}')" class="btn-support">
+                                <i class="fas fa-heart"></i> Send Support
+                            </button>
+                            <button onclick="shareEntry(${entry.id})" class="btn-share">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+        }
+
+        function searchSupport() {
+            const searchTerm = document.getElementById('support-search').value.toLowerCase().trim();
+            const entries = document.querySelectorAll('.public-entry');
+            let visibleCount = 0;
+            
+            entries.forEach(entry => {
+                const category = entry.getAttribute('data-category').toLowerCase();
+                const content = entry.getAttribute('data-content');
+                
+                if (!searchTerm || category.includes(searchTerm) || content.includes(searchTerm)) {
+                    entry.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+            
+            updateEntriesCount(visibleCount);
+        }
+
+        function filterByCategory() {
+            const selectedCategory = document.getElementById('category-filter').value;
+            const entries = document.querySelectorAll('.public-entry');
+            let visibleCount = 0;
+            
+            entries.forEach(entry => {
+                const entryCategory = entry.getAttribute('data-category');
+                
+                if (!selectedCategory || entryCategory === selectedCategory) {
+                    entry.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+            
+            updateEntriesCount(visibleCount);
+        }
+
+        function clearFilters() {
+            document.getElementById('support-search').value = '';
+            document.getElementById('category-filter').value = '';
+            
+            const entries = document.querySelectorAll('.public-entry');
+            entries.forEach(entry => {
+                entry.style.display = 'block';
+            });
+            
+            updateEntriesCount(entries.length);
+        }
+
+        function updateEntriesCount(count) {
+            const entriesCount = document.getElementById('entries-count');
+            entriesCount.textContent = `${count} shared experience${count !== 1 ? 's' : ''}`;
+        }
+
+        function sendSupport(userName) {
+            showNotification(`Support sent to ${userName}! 💚`, 'success');
+        }
+
+        function shareEntry(entryId) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'MindfulSpace - Shared Experience',
+                    text: 'Check out this inspiring share from our community',
+                    url: window.location.href
+                });
+            } else {
+                // Fallback for browsers that don't support Web Share API
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    showNotification('Link copied to clipboard! 📋', 'success');
+                });
+            }
+        }
+
+        // Auto-refresh entries every 30 seconds
+        setInterval(loadPublicEntries, 30000);
+    </script>
+</body>
+</html>
